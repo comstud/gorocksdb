@@ -1,5 +1,6 @@
 package gorocksdb
 
+// #include <stdlib.h>
 import "C"
 import (
 	"reflect"
@@ -30,6 +31,19 @@ func charToByte(data *C.char, len C.size_t) []byte {
 	return value
 }
 
+// cBackedBytes returs a copy of the same byte slice which is backed by
+// malloced memory. This should be freed using freeCBackedBytes.
+func cBackedBytes(data []byte) []byte {
+	return charToByte(cByteSlice(data), C.size_t(len(data)))
+}
+
+// freeCBackedBytes frees a byte slice created by cBackedBytes
+func freeCBackedBytes(data []byte) {
+	sH := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	C.free(unsafe.Pointer(sH.Data))
+
+}
+
 // byteToChar returns *C.char from byte slice.
 func byteToChar(b []byte) *C.char {
 	var c *C.char
@@ -49,6 +63,12 @@ func cByteSlice(b []byte) *C.char {
 		c = (*C.char)(cData)
 	}
 	return c
+}
+
+// stringToChar returns *C.char from string.
+func stringToChar(s string) *C.char {
+	ptrStr := (*reflect.StringHeader)(unsafe.Pointer(&s))
+	return (*C.char)(unsafe.Pointer(ptrStr.Data))
 }
 
 // charSlice converts a C array of *char to a []*C.char.
